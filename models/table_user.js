@@ -20,6 +20,17 @@ const User = module_db.define("User", {
     email: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+
+    reset_token: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null
+    },
+    token_expiry: {
+        type: DataTypes.TIME,
+        allowNull: true,
+        defaultValue: null
     }
 }, {});
 

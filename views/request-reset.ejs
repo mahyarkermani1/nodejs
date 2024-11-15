@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<%- include("header", {title: "Forget Password"}) %>
+
+<body>
+<div class="container">
+    <h2 class="mt-5">Reset Your Password</h2>
+    <% if (typeof errorMessage !== 'undefined') { %>
+        <div class="alert alert-danger">
+            <%= errorMessage %>
+        </div>
+    <% } %>
+    <form action="/request-reset" method="POST">
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" class="form-control" id="email" name="email" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Request Reset</button>
+    </form>
+</div>
+</body>
+
+<%- include("footer") %>
+
+</html>

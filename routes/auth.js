@@ -60,7 +60,6 @@ router_express.post("/register", async (req, res) => {
 router_express.post("/login", async (req, res) => {
     const { email, password } = req.body
 
-    console.log(email)
 
     const search_e_p_into_db = await table_user.findOne({
         where: {
@@ -69,11 +68,20 @@ router_express.post("/login", async (req, res) => {
         }
     })
 
-    console.log(search_e_p_into_db)
-
     if (search_e_p_into_db) {
  
-        res.send(`Welcome ${search_e_p_into_db.first_name}`)
+        const token = generateToken(search_e_p_into_db.first_name, email)
+        res.cookie("login", token)
+        res.render("profile", {
+            profile: {
+                email: email,
+                first_name: search_e_p_into_db.first_name,
+                last_name: search_e_p_into_db.last_name,
+                password: password
+            }
+        });
+
+
         } else {
             res.render("login", {"errorMessage": "Username or password is wrong"})
         }

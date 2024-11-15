@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include("header", {title: "Home"}) %>
+<body>
+    <div class="container mt-5">
+        <h2>User List</h2>
+        <input type="text" id="searchBox" class="form-control" placeholder="Search Users...">
+        <table class="table table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Username</th>
+                </tr>
+            </thead>
+            <tbody id="userTableBody">
+                <% users.forEach(function(user, index) { %>
+                    <tr>
+                        <td><%= index + 1 %></td>
+                        <td class="username"><%= user.first_name %></td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('searchBox').addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#userTableBody tr');
+            rows.forEach(row => {
+                const usernameCell = row.querySelector('.username');
+                const usernameText = usernameCell.textContent.toLowerCase();
+                row.style.display = usernameText.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+<%- include("footer") %>
+</html>

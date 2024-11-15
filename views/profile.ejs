@@ -1,34 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
+<%- include('header', {title: "Profile"}) %>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Information</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-</head>
-
-<body>
-
-    <div class="container mt-5">
-        <h1>User Information</h1>
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title"><%= profile.email %></h5>
-                <p class="card-text">First Name: <%= profile.first_name %></p>
-                <p class="card-text">Last Name: <%= profile.last_name %></p>
-                <p class="card-text">Password: <%= profile.password %></p>
-            </div>
-        </div>
-        <a href="/" class="btn btn-primary mt-3">Back</a>
+<div class="container mt-5">
+    <h2>User Account</h2>
+    <div class="text-center">
+        <img src="../images/users/default-pic.jpg" alt="User Image" class="rounded-circle" width="150">
+        <h5><%= profile.first_name + " " + profile.last_name %></h5>
+        <p><%= "@" + profile.first_name %></p>
+        <p>Last Login: <span id="last-login">Date and Time</span></p>
+        <button class="btn btn-primary" id="change-photo-button">Change Photo</button>
     </div>
 
-    <!-- Optional JavaScript; choose one of the two! -->
-    <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
+    <ul class="nav nav-tabs mt-4" id="account-tabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="settings-tab" data-toggle="tab" href="#settings" role="tab">Settings</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="change-password-tab" data-toggle="tab" href="#change-password" role="tab">Change Password</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="logout-tab" href="/logout" role="tab">Logout</a>
+        </li>
+    </ul>
 
-</html>
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="settings" role="tabpanel">
+            <form class="mt-3" method="POST" action="/update-settings">
+                <div class="form-group">
+                    <label for="first-name">First Name</label>
+                    <input type="text" class="form-control" id="first-name" name="first_name" value="<%= profile.first_name %>">
+                </div>
+                <div class="form-group">
+                    <label for="last-name">Last Name</label>
+                    <input type="text" class="form-control" id="last-name" name="last_name" value="<%= profile.last_name %>">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" value="<%= profile.email %>">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="change-password" role="tabpanel">
+            <form class="mt-3" method="POST" action="/change-password">
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" class="form-control" id="new-password" name="new_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" class="form-control" id="confirm-password" name="confirm_password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Change Password</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- include('footer') %>
