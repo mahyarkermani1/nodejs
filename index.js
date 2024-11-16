@@ -21,6 +21,8 @@ instance_web.use(cookieParser());
 
 const Sequelize = require('sequelize');
 
+const multer = require('multer');
+
 
 const module_db = require("./database/db_init");
 
@@ -161,6 +163,7 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
                 email: email,
                 first_name: first_name,
                 last_name: search_fn_email_into_db.last_name,
+                bio: search_fn_email_into_db.bio,
                 password: search_fn_email_into_db.password
             }
         });
@@ -171,6 +174,46 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
 });
 
 
+// Set storage settings for Multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, '/images/users'); // Specify the uploads directory
+    },
+    filename: (req, res, file, cb) => {
+        authenticateToken(req, res); // Get the email from cookies
+        const { email } = res.locals.user_profile
+        const hashedEmail = crypto.createHash('sha256').update(email).digest('hex');
+        const ext = path.extname(file.originalname).toLowerCase(); // Get file extension
+        cb(null, `${hashedEmail}${ext}`); // Save file as hashed email + extension
+    }
+});
+
+
+// Create the multer upload instance
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        // Accept only jpeg and png formats
+        const filetypes = /jpeg|jpg|png/;
+        const mimetype = filetypes.test(file.mimetype);
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        
+        if (mimetype && extname) {
+            return cb(null, true);
+        }
+        cb(new Error('Error: File type not supported!'));
+    }
+});
+
+
+// Upload photo route
+instance_web.post('/upload_photo', upload.single('photo'), (req, res) => {
+    if (req.file) {
+        res.status(200).send('Photo uploaded successfully!');
+    } else {
+        res.status(400).send('Error uploading photo.');
+    }
+});
 
 instance_web.use("/birds", router_birds)
 instance_web.use("/auth", router_auth)

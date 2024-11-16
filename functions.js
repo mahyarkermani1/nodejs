@@ -24,7 +24,7 @@ function authenticateToken(req, res, next) {
 
     try {
         const token_decode = jwt.verify(token, SECRET_KEY);
-        console.log(token_decode)
+
         if (token_decode) {
             res.locals.user_profile = {
                 first_name: token_decode.first_name,

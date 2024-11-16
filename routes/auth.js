@@ -47,6 +47,7 @@ router_express.post("/register", async (req, res) => {
                 email: email,
                 first_name: first_name,
                 last_name: last_name,
+                bio: search_email_into_db.bio,
                 password: password
             }
         });
