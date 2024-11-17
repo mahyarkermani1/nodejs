@@ -3,7 +3,7 @@
 <div class="container mt-5">
     <h2>User Account</h2>
     <div class="text-center">
-        <img src="../images/users/default-pic.jpg" alt="User Image" class="rounded-circle" width="150">
+        <img src="<%= profile.photo ? profile.photo : '/images/users/default-pic.jpg' %>" alt="User Image" class="rounded-circle" width="150">
         <h5><%= profile.first_name + " " + profile.last_name %></h5>
         <p><%= "@" + profile.first_name %></p>
         <p>Last Login: <span id="last-login">Date and Time</span></p>
@@ -80,16 +80,17 @@
         // Optionally, submit the form with the file after selecting
         if (this.files.length > 0) {
             const formData = new FormData();
-            formData.append('photo', this.files[0]);
+            formData.append('profile_picture', this.files[0]);
             console.log(11)
             console.log(formData)
-            fetch('/upload_photo', {  // Adjust the URL to match your backend route
+            fetch('/profiles', {  // Adjust the URL to match your backend route
                 method: 'POST',
                 body: formData
             })
             .then(response => {
                 if (response.ok) {
                     console.log('Photo uploaded successfully.');
+                    location.reload()
                 } else {
                     console.error('Error uploading photo.');
                 }

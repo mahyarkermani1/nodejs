@@ -2,6 +2,34 @@ const jwt = require('jsonwebtoken');
 
 const module_db = require("./database/db_init");
 
+const crypto = require('crypto');
+
+const module_path = require("path")
+const fs = require('fs');
+
+
+function generateMD5Hash(input) {
+    return crypto.createHash('md5').update(input).digest('hex');
+}
+
+function FindPhoto(email) {
+    photo_hash = generateMD5Hash(email)
+    const file_ext = ["jpg", "jpeg", "png"];
+    let foundPath = null;
+
+    file_ext.forEach(ext => {
+        const file_path = module_path.join(__dirname, "files", "images", "users", `${photo_hash}.${ext}`); // Use __dirname for a reference point
+        console.log(file_path)
+        // Check if the path exists
+        if (fs.existsSync(file_path)) {
+            foundPath = `${photo_hash}.${ext}`
+            return; // Exit the loop since we found the file
+        }
+    });
+
+    return foundPath; // Return found path or null
+}
+
 async function init_root(next) {
     var listen_port = 8585
     console.log(`Listen on port ${listen_port}`)
@@ -42,5 +70,7 @@ function authenticateToken(req, res, next) {
 
 module.exports = {
     authenticateToken,
-    init_root
+    init_root,
+    generateMD5Hash,
+    FindPhoto
 }

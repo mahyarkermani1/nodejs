@@ -9,6 +9,8 @@ router_express.use(cookieParser());
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = '123';
 
+const { FindPhoto } = require("../functions")
+
 function generateToken(first_name, email) {
     const payload = { first_name: first_name, email: email };
     const options = { expiresIn: '24h' }; // Adjust expiration as needed
@@ -42,6 +44,8 @@ router_express.post("/register", async (req, res) => {
     
         const token = generateToken(first_name, email)
         res.cookie("login", token)
+
+
         res.render("profile", {
             profile: {
                 email: email,
@@ -73,8 +77,17 @@ router_express.post("/login", async (req, res) => {
  
         const token = generateToken(search_e_p_into_db.first_name, email)
         res.cookie("login", token)
+
+        const photo = FindPhoto(email)
+        if (photo) {
+            var new_photo = `/images/users/${photo}`
+        } else {
+            new_photo = null
+        }
+
         res.render("profile", {
             profile: {
+                photo: new_photo,
                 email: email,
                 first_name: search_e_p_into_db.first_name,
                 last_name: search_e_p_into_db.last_name,

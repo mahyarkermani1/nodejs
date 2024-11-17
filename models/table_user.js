@@ -26,7 +26,6 @@ const User = module_db.define("User", {
     bio: {
         type: DataTypes.STRING,
         allowNull: true,
-        defaultValue: null
     },
 
     reset_token: {

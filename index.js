@@ -33,7 +33,7 @@ const router_auth = require("./routes/auth")
 const login = require("./routes/render-login")
 const register = require("./routes/render-register")
 
-const { authenticateToken, init_root } = require("./functions")
+const { authenticateToken, init_root, generateMD5Hash, FindPhoto } = require("./functions")
 
 
 var listen_port = 8585
@@ -158,8 +158,17 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
     });
 
     if (search_fn_email_into_db) {
+
+        const photo = FindPhoto(email)
+        if (photo) {
+            var new_photo = `/images/users/${photo}`
+        } else {
+            new_photo = null
+        }
+
         res.render("profile", {
             profile: {
+                photo: new_photo,
                 email: email,
                 first_name: first_name,
                 last_name: search_fn_email_into_db.last_name,
@@ -174,46 +183,30 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
 });
 
 
-// Set storage settings for Multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, '/images/users'); // Specify the uploads directory
-    },
-    filename: (req, res, file, cb) => {
-        authenticateToken(req, res); // Get the email from cookies
-        const { email } = res.locals.user_profile
-        const hashedEmail = crypto.createHash('sha256').update(email).digest('hex');
-        const ext = path.extname(file.originalname).toLowerCase(); // Get file extension
-        cb(null, `${hashedEmail}${ext}`); // Save file as hashed email + extension
-    }
-});
 
 
-// Create the multer upload instance
-const upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        // Accept only jpeg and png formats
-        const filetypes = /jpeg|jpg|png/;
-        const mimetype = filetypes.test(file.mimetype);
-        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        
-        if (mimetype && extname) {
-            return cb(null, true);
+function getMulterStorage(user_profile) {
+    return multer.diskStorage({
+        destination: function(req, file, cb) {
+            cb(null, "./files/images/users");
+        },
+        filename: function(req, file, cb) {
+            // Use user's first_name or email in the filename
+            cb(null, `${generateMD5Hash(user_profile.email)}${module_path.extname(file.originalname)}`);
         }
-        cb(new Error('Error: File type not supported!'));
-    }
-});
+    });
+}
 
 
-// Upload photo route
-instance_web.post('/upload_photo', upload.single('photo'), (req, res) => {
-    if (req.file) {
-        res.status(200).send('Photo uploaded successfully!');
-    } else {
-        res.status(400).send('Error uploading photo.');
-    }
-});
+instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
+    const user_profile = res.locals.user_profile; // Destructure the user profile
+    const upload = multer({ storage: getMulterStorage(user_profile) });
+    upload.single('profile_picture')(req, res, next);
+
+    res.send({"msg": "ok"})
+
+})
+
 
 instance_web.use("/birds", router_birds)
 instance_web.use("/auth", router_auth)
