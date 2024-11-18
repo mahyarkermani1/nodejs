@@ -9,10 +9,18 @@
         <p>Last Login: <span id="last-login">Date and Time</span></p>
         
         <!-- Change Photo Section -->
-        <input type="file" id="photo-input" accept="image/.jpg, .jpeg, .png" style="display: none;">
-        <label class="btn btn-primary" id="change-photo-button" for="photo-input">Change Photo</label>
-        <span id="photo-file-name" class="d-block mt-2"></span>
+        <form id="change-photo-form" method="POST" action="/profiles" enctype="multipart/form-data">
+            <input type="file" id="photo-input" name="profile_picture" accept="image/jpg, image/jpeg, image/png" required>
+            <button type="submit" class="btn btn-primary mt-2">Upload Photo</button>
+            <span id="photo-file-name" class="d-block mt-2"></span>
+        </form>
     </div>
+    
+    <% if (typeof errorMessage !== 'undefined') { %>
+        <div class="alert alert-danger">
+            <%= errorMessage %>
+        </div>
+    <% } %>
 
     <ul class="nav nav-tabs mt-4" id="account-tabs" role="tablist">
         <li class="nav-item">
@@ -22,13 +30,19 @@
             <a class="nav-link" id="change-password-tab" data-toggle="tab" href="#change-password" role="tab">Change Password</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" id="logout-tab" href="/logout" role="tab">Logout</a>
+            <form id="change-photo-form" method="POST" action="/profiles">
+                <input type="hidden" name="operation" value="logout">
+                <button type="submit" class="nav-link" id="logout-tab" role="tab">Logout</button>
+            </form>
+
+            
         </li>
     </ul>
 
     <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="settings" role="tabpanel">
-            <form class="mt-3" method="POST" action="/update-settings">
+            <form class="mt-3" method="POST" action="/profiles">
+                <input type="hidden" name="operation" value="update_setting">
                 <div class="form-group">
                     <label for="first-name">First Name</label>
                     <input type="text" class="form-control" id="first-name" name="first_name" value="<%= profile.first_name %>">
@@ -50,7 +64,8 @@
         </div>
 
         <div class="tab-pane fade" id="change-password" role="tabpanel">
-            <form class="mt-3" method="POST" action="/change-password">
+            <form class="mt-3" method="POST" action="/profiles">
+                <input type="hidden" name="operation" value="update_password">
                 <div class="form-group">
                     <label for="current-password">Current Password</label>
                     <input type="password" class="form-control" id="current-password" name="current_password" required>
@@ -70,32 +85,3 @@
 </div>
 
 <%- include('footer') %>
-
-<!-- JavaScript to handle file input and preview file name -->
-<script>
-    document.getElementById('photo-input').addEventListener('change', function() {
-        const fileName = this.files[0] ? this.files[0].name : '';
-        document.getElementById('photo-file-name').textContent = fileName;
-
-        // Optionally, submit the form with the file after selecting
-        if (this.files.length > 0) {
-            const formData = new FormData();
-            formData.append('profile_picture', this.files[0]);
-            console.log(11)
-            console.log(formData)
-            fetch('/profiles', {  // Adjust the URL to match your backend route
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log('Photo uploaded successfully.');
-                    location.reload()
-                } else {
-                    console.error('Error uploading photo.');
-                }
-            })
-            .catch(err => console.error('Fetch error: ', err));
-        }
-    });
-</script>

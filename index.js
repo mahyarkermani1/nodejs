@@ -33,7 +33,8 @@ const router_auth = require("./routes/auth")
 const login = require("./routes/render-login")
 const register = require("./routes/render-register")
 
-const { authenticateToken, init_root, generateMD5Hash, FindPhoto } = require("./functions")
+const { authenticateToken, init_root, generateMD5Hash, FindPhoto } = require("./functions");
+const { table } = require("console");
 
 
 var listen_port = 8585
@@ -137,7 +138,7 @@ instance_web.post('/reset-password', (req, res) => {
         return res.send('Passwords do not match');
     }
 
-    db.query('UPDATE Users SET password = ?, reset_token = NULL, token_expiry = NULL WHERE reset_token = ?', [password, token], (err, results) => {
+    module_db.query('UPDATE Users SET password = ?, reset_token = NULL, token_expiry = NULL WHERE reset_token = ?', [password, token], (err, results) => {
         if (err) throw err;
         res.redirect("login");
     });
@@ -200,12 +201,102 @@ function getMulterStorage(user_profile) {
 
 instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
     const user_profile = res.locals.user_profile; // Destructure the user profile
-    const upload = multer({ storage: getMulterStorage(user_profile) });
-    upload.single('profile_picture')(req, res, next);
 
-    res.send({"msg": "ok"})
+    // If operation is to update settings
+    if (req.body.operation === 'update_setting') {
+        
+        const user_data = await table_user.findOne({
+            where: {
+            email: req.body.email
+            }
+        })
+    // identify email duplicate
+        // console.log(user_data)
+        // console.log(user_data.length > 1)
+        // const user_email = req.body.email
+        // if (user_data && user_data.length != 0 && user_email != user_data.email) {
+        // res.send("Duplicate Email !")
+        // }
+        
 
-})
+        await table_user.update(
+        {
+            first_name: req.body.first_name,
+            last_name: req.body.last_name,
+            email: req.body.email,
+            bio: req.body.bio
+        },
+        {
+            where: {
+                email: req.body.email
+            }
+        })
+
+        res.redirect('/profiles');
+
+    } 
+    // If operation is to update password
+    else if (req.body.operation === 'update_password') {
+        const user_data = await table_user.findOne({
+            where: {
+            password: req.body.current_password
+            }
+        })
+
+        if (!user_data) {
+            res.send("The Current password is wrong")
+        } else if (user_data) {
+            if (req.body.new_password !== req.body.confirm_password) {
+                res.send("The new and confirm password is not match")
+            }
+
+            console.log(req.body.new_password)
+            console.log(req.body.current_password)
+            await table_user.update(
+                {
+                    password: req.body.new_password
+                },
+                {
+                    where: {
+                        password: req.body.current_password
+                    }
+                })
+        }
+
+        res.clearCookie("login")
+        res.redirect('/profiles');
+
+    } else if (req.body.operation === 'logout') {
+        console.log("aaaaaa")
+        res.clearCookie("login")
+        res.redirect("login")
+    }
+    // If we're dealing with a file upload
+    else {
+        const upload = multer({ storage: getMulterStorage(user_profile) }).single('profile_picture');
+
+        upload(req, res, function(err) {
+            if (err) {
+                console.error("File upload error:", err); // Log error details
+                return res.status(500).send("Error uploading file."); // Handle error
+            }
+            
+            // Here, req.file contains the upload information
+            if (req.file) {
+                console.log("File uploaded successfully:", req.file); // Log the uploaded file info
+                // You can now process the file information as needed
+                // For example, update the user's profile photo in the database
+            }
+
+            // After processing the file, redirect back to the profile page
+            res.redirect('/profiles');
+            
+        });
+    
+    
+    }
+});
+
 
 
 instance_web.use("/birds", router_birds)
