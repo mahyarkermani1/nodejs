@@ -25,6 +25,7 @@ const Sequelize = require('sequelize');
 const module_db = require("./database/db_init");
 
 const table_user = require("./models/table_user")
+const table_post = require("./models/table_post")
 
 const router_birds = require("./routes/birds");
 const router_auth = require("./routes/auth")
@@ -38,8 +39,8 @@ var listen_port = 8585
 
 
 
-instance_web.listen(listen_port, init_root, async () => {
-     
+instance_web.listen(listen_port, (res, req, next) => {
+    init_root()
 })
 
 
@@ -47,6 +48,45 @@ instance_web.get("/", async (req, res) => {
     const _table_user = await table_user.findAll()
     res.render("show_users", {users:_table_user})
 })
+
+instance_web.get("/create_post", authenticateToken, async (req, res) => {
+
+    if (req.query.operation === 'delete') {
+        
+            db.query('DELETE FROM Posts WHERE id_post = ? AND id_user = ?', [req.query.id_post, req.query.id_user], (error) => {
+                if (error) throw error;
+                res.send('Post deleted successfully');
+            });
+
+    } else if (req.query.operation === 'load') {
+        const user_posts = await table_post.findAll({
+            where: {
+                id_user: req.query.id_user
+            }
+        })
+
+            res.render("profile", {
+                posts: {user_posts},
+            });
+    } else {
+        res.render("create_post")
+    }
+
+})
+
+
+instance_web.post("/create_post", authenticateToken, async (req, res) => {
+    const {title, content} = req.body
+    console.log(res.locals.user_profile.id)
+    console.log(res.locals.user_profile)
+    await table_post.create({
+        id_user: res.locals.user_profile.id,
+        title,
+        content
+    })
+    res.send("Post created successfully.")
+})
+
 
 
 instance_web.get('/request-reset', (req, res) => {
@@ -155,14 +195,21 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
         }
     });
 
+    const user_posts = await table_post.findAll({
+        where: {
+            id_user: search_fn_email_into_db.id
+        }
+    })
     if (search_fn_email_into_db) {
         res.render("profile", {
             profile: {
+                id: search_fn_email_into_db.id,
                 email: email,
                 first_name: first_name,
                 last_name: search_fn_email_into_db.last_name,
                 password: search_fn_email_into_db.password
-            }
+            },
+            posts: {user_posts}
         });
     } else {
         // Handle case where user is not found
@@ -171,7 +218,10 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
 });
 
 
+instance_web.get("/logout", authenticateToken, async (req, res, next) => {
 
+    res.clearCookie("login").redirect("login")
+})
 instance_web.use("/birds", router_birds)
 instance_web.use("/auth", router_auth)
 instance_web.use("/login", login)
