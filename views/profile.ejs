@@ -87,7 +87,7 @@
 
         <div class="tab-pane fade" id="my-posts" role="tabpanel">
             <div class="mt-3">
-                <% if (posts.length > 0) { %>
+                <% if (typeof posts !== "undefined" && posts.length > 0) { %>
                     <table class="table table-bordered">
                         <thead>
                             <tr>
@@ -105,12 +105,12 @@
                         <tbody>
                             <% posts.forEach(post => { %>
                                 <tr>
-                                    <td><%= post.id %></td>
-                                    <td><%= post.created_at %></td>
+                                    <td><%= post.id_post %></td>
+                                    <td><%= post.createdAt %></td>
                                     <td><%= post.title %></td>
                                     <td>
                                         <a href="/create_post?operation=edit&id_post=<%= post.id_post %>&id_user=<%= post.id_user %>" class="btn btn-warning btn-sm">Edit</a>
-                                        <button onclick='"deletePost(<%= post.id_post %>, <%= post.id_user %>)"' class="btn btn-danger btn-sm">Delete</button>
+                                        <a href="/create_post?operation=delete&id_post=<%= post.id_post %>&id_user=<%= post.id_user %>" class="btn btn-danger btn-sm">Delete</a>
                                     </td>
                                 </tr>
                             <% }); %>

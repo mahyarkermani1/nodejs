@@ -59,9 +59,9 @@ router_express.post("/register", async (req, res) => {
                 email: email,
                 first_name: first_name,
                 last_name: last_name,
-                bio: search_email_into_db.bio,
+                bio: "",
                 password: password
-            }
+            },
         });
     }
 
@@ -92,10 +92,10 @@ router_express.post("/login", async (req, res) => {
         } else {
             new_photo = null
         }
-        const posts = load_user_posts(search_e_p_into_db.id)
+        const posts = await load_user_posts(search_e_p_into_db.id)
 
-        console.log(`user id: ${search_e_p_into_db.id}`)
-        console.log(`user posts: ${posts}`)
+
+        console.log(`user posts: ${posts.id}`)
 
         res.render("profile", {
             profile: {
@@ -107,6 +107,8 @@ router_express.post("/login", async (req, res) => {
             },
             posts: posts
         });
+
+
 
 
         } else {

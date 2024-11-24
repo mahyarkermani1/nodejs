@@ -9,6 +9,7 @@ const fs = require('fs');
 
 const table_post = require("./models/table_post")
 
+const multer = require('multer');
 
 function generateMD5Hash(input) {
     return crypto.createHash('md5').update(input).digest('hex');
@@ -83,10 +84,23 @@ async function load_user_posts(user_id) {
     })
 }
 
+function getMulterStorage(user_profile) {
+    return multer.diskStorage({
+        destination: function(req, file, cb) {
+            cb(null, "./files/images/users");
+        },
+        filename: function(req, file, cb) {
+            // Use user's first_name or email in the filename
+            cb(null, `${generateMD5Hash(user_profile.email)}${module_path.extname(file.originalname)}`);
+        }
+    });
+}
+
 module.exports = {
     authenticateToken,
     init_root,
     generateMD5Hash,
     FindPhoto,
-    load_user_posts
+    load_user_posts,
+    getMulterStorage
 }

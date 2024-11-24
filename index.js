@@ -34,7 +34,7 @@ const router_auth = require("./routes/auth")
 const login = require("./routes/render-login")
 const register = require("./routes/render-register")
 
-const { authenticateToken, init_root } = require("./functions")
+const { authenticateToken, init_root, FindPhoto, load_user_posts, getMulterStorage } = require("./functions")
 
 
 var listen_port = 8585
@@ -55,21 +55,33 @@ instance_web.get("/create_post", authenticateToken, async (req, res) => {
 
     if (req.query.operation === 'delete') {
         
-            db.query('DELETE FROM Posts WHERE id_post = ? AND id_user = ?', [req.query.id_post, req.query.id_user], (error) => {
-                if (error) throw error;
-                res.send('Post deleted successfully');
-            });
-
-    } else if (req.query.operation === 'load') {
-        const user_posts = await table_post.findAll({
-            where: {
-                id_user: req.query.id_user
+            // module_db.query('DELETE FROM Posts WHERE id_post = ? AND id_user = ?', [req.query.id_post, req.query.id_user], (error) => {
+            //     if (error) throw error;
+            //     res.redirect("/profiles")
+            // });
+            await table_post.destroy({
+                where:
+                {
+                    id_post: req.query.id_post,
+                    id_user: req.query.id_user
+                }
             }
-        })
+            )
+            res.redirect("/profiles")
 
-            res.render("profile", {
-                posts: {user_posts},
-            });
+    } else if (req.query.operation === 'edit') {
+        const user_posts = await load_user_posts(req.query.id_user)
+        const reqIdPost = parseInt(req.query.id_post, 10);
+        const post = user_posts.find(p => p.dataValues.id_post === reqIdPost);
+
+
+
+        res.render("create_post", {
+            id: post.id_post,
+            title: post.title, // Pass the post's title directly
+            content: post.content, // Pass post's content and other properties if necessary
+        });
+    
     } else {
         res.render("create_post")
     }
@@ -78,15 +90,27 @@ instance_web.get("/create_post", authenticateToken, async (req, res) => {
 
 
 instance_web.post("/create_post", authenticateToken, async (req, res) => {
-    const {title, content} = req.body
-    console.log(res.locals.user_profile.id)
-    console.log(res.locals.user_profile)
-    await table_post.create({
-        id_user: res.locals.user_profile.id,
-        title,
-        content
-    })
-    res.send("Post created successfully.")
+    const {id_post, title, content} = req.body
+
+    if (id_post) {
+        await table_post.update({
+            title,
+            content
+        },
+        {
+        where: {
+            id_post: id_post,
+        }})
+    } else {
+        await table_post.create({
+            id_user: res.locals.user_profile.id,
+            title,
+            content
+        })
+    }
+
+
+    res.redirect("/profiles")
 })
 
 
@@ -197,11 +221,7 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
         }
     });
 
-    const user_posts = await table_post.findAll({
-        where: {
-            id_user: search_fn_email_into_db.id
-        }
-    })
+    
     if (search_fn_email_into_db) {
 
         const photo = FindPhoto(email)
@@ -210,7 +230,10 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
         } else {
             new_photo = null
         }
-
+        
+        const user_posts = await load_user_posts(search_fn_email_into_db.id)
+        console.log(search_fn_email_into_db.id)
+        console.log(user_posts)
         res.render("profile", {
             profile: {
                 photo: new_photo,
@@ -221,7 +244,7 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
                 bio: search_fn_email_into_db.bio,
                 password: search_fn_email_into_db.password
             },
-            posts: {user_posts}
+            posts: user_posts
         });
     } else {
         // Handle case where user is not found
@@ -230,10 +253,104 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
 });
 
 
-instance_web.get("/logout", authenticateToken, async (req, res, next) => {
+instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
+    const user_profile = res.locals.user_profile; // Destructure the user profile
 
-    res.clearCookie("login").redirect("login")
-})
+    // If operation is to update settings
+    if (req.body.operation === 'update_setting') {
+        
+        // const user_data = await table_user.findOne({
+        //     where: {
+        //     email: req.body.email
+        //     }
+        // })
+    // identify email duplicate
+        // console.log(user_data)
+        // console.log(user_data.length > 1)
+        // const user_email = req.body.email
+        // if (user_data && user_data.length != 0 && user_email != user_data.email) {
+        // res.send("Duplicate Email !")
+        // }
+        
+
+        await table_user.update(
+        {
+            first_name: req.body.first_name,
+            last_name: req.body.last_name,
+            email: req.body.email,
+            bio: req.body.bio
+        },
+        {
+            where: {
+                email: req.body.email
+            }
+        })
+
+        res.redirect('/profiles');
+
+    } else if (req.body.operation === 'update_password') {
+        const user_data = await table_user.findOne({
+            where: {
+            password: req.body.current_password
+            }
+        })
+
+        if (!user_data) {
+            res.send("The Current password is wrong")
+        } else if (user_data) {
+            if (req.body.new_password !== req.body.confirm_password) {
+                res.send("The new and confirm password is not match")
+            }
+
+            console.log(req.body.new_password)
+            console.log(req.body.current_password)
+            await table_user.update(
+                {
+                    password: req.body.new_password
+                },
+                {
+                    where: {
+                        password: req.body.current_password
+                    }
+                })
+    
+
+
+        } 
+    
+        res.clearCookie("login")
+        res.redirect('/profiles');
+    
+    } else if (req.body.operation === 'logout') {
+        console.log("aaaaaa")
+        res.clearCookie("login")
+        res.redirect("login")
+    } else {
+        const upload = multer({ storage: getMulterStorage(user_profile) }).single('profile_picture');
+
+        upload(req, res, function(err) {
+            if (err) {
+                console.error("File upload error:", err); // Log error details
+                return res.status(500).send("Error uploading file."); // Handle error
+            }
+            
+            // Here, req.file contains the upload information
+            if (req.file) {
+                console.log("File uploaded successfully:", req.file); // Log the uploaded file info
+                // You can now process the file information as needed
+                // For example, update the user's profile photo in the database
+            }
+
+            // After processing the file, redirect back to the profile page
+            res.redirect('/profiles');
+            
+        });
+    
+    
+    }
+});
+
+
 instance_web.use("/birds", router_birds)
 instance_web.use("/auth", router_auth)
 instance_web.use("/login", login)
