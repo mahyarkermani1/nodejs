@@ -9,10 +9,10 @@ router_express.use(cookieParser());
 const jwt = require('jsonwebtoken');
 const SECRET_KEY = '123';
 
-const { FindPhoto } = require("../functions")
+const { FindPhoto, load_user_posts } = require("../functions")
 
-function generateToken(first_name, email) {
-    const payload = { first_name: first_name, email: email };
+function generateToken(id, first_name, email) {
+    const payload = { id:id, first_name: first_name, email: email };
     const options = { expiresIn: '24h' }; // Adjust expiration as needed
     return jwt.sign(payload, SECRET_KEY, options);
 }
@@ -41,13 +41,21 @@ router_express.post("/register", async (req, res) => {
             email: email,
             password: password
         })
+
+        const user = await table_user.findOne({
+            where: {
+            email
+        }})
+
+
     
-        const token = generateToken(first_name, email)
+        const token = generateToken(user.id, first_name, email)
         res.cookie("login", token)
 
 
         res.render("profile", {
             profile: {
+                id: user.id,
                 email: email,
                 first_name: first_name,
                 last_name: last_name,
@@ -75,7 +83,7 @@ router_express.post("/login", async (req, res) => {
 
     if (search_e_p_into_db) {
  
-        const token = generateToken(search_e_p_into_db.first_name, email)
+        const token = generateToken(search_e_p_into_db.id, search_e_p_into_db.first_name, email)
         res.cookie("login", token)
 
         const photo = FindPhoto(email)
@@ -84,6 +92,10 @@ router_express.post("/login", async (req, res) => {
         } else {
             new_photo = null
         }
+        const posts = load_user_posts(search_e_p_into_db.id)
+
+        console.log(`user id: ${search_e_p_into_db.id}`)
+        console.log(`user posts: ${posts}`)
 
         res.render("profile", {
             profile: {
@@ -92,7 +104,8 @@ router_express.post("/login", async (req, res) => {
                 first_name: search_e_p_into_db.first_name,
                 last_name: search_e_p_into_db.last_name,
                 password: password
-            }
+            },
+            posts: posts
         });
 
 

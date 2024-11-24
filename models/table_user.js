@@ -2,6 +2,12 @@ const { DataTypes } = require("sequelize")
 const module_db = require("../database/db_init");
 
 const User = module_db.define("User", {
+    id: {  // Make sure to add this
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+
     first_name: {
         type: DataTypes.STRING,
         allowNull: false

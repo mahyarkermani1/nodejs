@@ -7,6 +7,8 @@ const crypto = require('crypto');
 const module_path = require("path")
 const fs = require('fs');
 
+const table_post = require("./models/table_post")
+
 
 function generateMD5Hash(input) {
     return crypto.createHash('md5').update(input).digest('hex');
@@ -35,8 +37,11 @@ async function init_root(next) {
     console.log(`Listen on port ${listen_port}`)
     try {
         await module_db.authenticate();
+        await module_db.sync({
+            // force: true
+        })
         console.log("Database is connected :)")
-        next()
+
     } catch (error) {
         console.error("Error while connecting db: ", error)
     }
@@ -55,6 +60,7 @@ function authenticateToken(req, res, next) {
 
         if (token_decode) {
             res.locals.user_profile = {
+                id: token_decode.id,
                 first_name: token_decode.first_name,
                 email: token_decode.email
             };
@@ -68,9 +74,19 @@ function authenticateToken(req, res, next) {
     return
 }
 
+
+async function load_user_posts(user_id) {
+    return await table_post.findAll({
+        where: {
+            id_user: user_id
+        }
+    })
+}
+
 module.exports = {
     authenticateToken,
     init_root,
     generateMD5Hash,
-    FindPhoto
+    FindPhoto,
+    load_user_posts
 }

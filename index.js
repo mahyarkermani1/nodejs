@@ -27,22 +27,22 @@ const multer = require('multer');
 const module_db = require("./database/db_init");
 
 const table_user = require("./models/table_user")
+const table_post = require("./models/table_post")
 
 const router_birds = require("./routes/birds");
 const router_auth = require("./routes/auth")
 const login = require("./routes/render-login")
 const register = require("./routes/render-register")
 
-const { authenticateToken, init_root, generateMD5Hash, FindPhoto } = require("./functions");
-const { table } = require("console");
+const { authenticateToken, init_root } = require("./functions")
 
 
 var listen_port = 8585
 
 
 
-instance_web.listen(listen_port, init_root, async () => {
-     
+instance_web.listen(listen_port, (res, req, next) => {
+    init_root()
 })
 
 
@@ -50,6 +50,45 @@ instance_web.get("/", async (req, res) => {
     const _table_user = await table_user.findAll()
     res.render("show_users", {users:_table_user})
 })
+
+instance_web.get("/create_post", authenticateToken, async (req, res) => {
+
+    if (req.query.operation === 'delete') {
+        
+            db.query('DELETE FROM Posts WHERE id_post = ? AND id_user = ?', [req.query.id_post, req.query.id_user], (error) => {
+                if (error) throw error;
+                res.send('Post deleted successfully');
+            });
+
+    } else if (req.query.operation === 'load') {
+        const user_posts = await table_post.findAll({
+            where: {
+                id_user: req.query.id_user
+            }
+        })
+
+            res.render("profile", {
+                posts: {user_posts},
+            });
+    } else {
+        res.render("create_post")
+    }
+
+})
+
+
+instance_web.post("/create_post", authenticateToken, async (req, res) => {
+    const {title, content} = req.body
+    console.log(res.locals.user_profile.id)
+    console.log(res.locals.user_profile)
+    await table_post.create({
+        id_user: res.locals.user_profile.id,
+        title,
+        content
+    })
+    res.send("Post created successfully.")
+})
+
 
 
 instance_web.get('/request-reset', (req, res) => {
@@ -158,6 +197,11 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
         }
     });
 
+    const user_posts = await table_post.findAll({
+        where: {
+            id_user: search_fn_email_into_db.id
+        }
+    })
     if (search_fn_email_into_db) {
 
         const photo = FindPhoto(email)
@@ -170,12 +214,14 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
         res.render("profile", {
             profile: {
                 photo: new_photo,
+                id: search_fn_email_into_db.id,
                 email: email,
                 first_name: first_name,
                 last_name: search_fn_email_into_db.last_name,
                 bio: search_fn_email_into_db.bio,
                 password: search_fn_email_into_db.password
-            }
+            },
+            posts: {user_posts}
         });
     } else {
         // Handle case where user is not found
@@ -184,121 +230,10 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
 });
 
 
+instance_web.get("/logout", authenticateToken, async (req, res, next) => {
 
-
-function getMulterStorage(user_profile) {
-    return multer.diskStorage({
-        destination: function(req, file, cb) {
-            cb(null, "./files/images/users");
-        },
-        filename: function(req, file, cb) {
-            // Use user's first_name or email in the filename
-            cb(null, `${generateMD5Hash(user_profile.email)}${module_path.extname(file.originalname)}`);
-        }
-    });
-}
-
-
-instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
-    const user_profile = res.locals.user_profile; // Destructure the user profile
-
-    // If operation is to update settings
-    if (req.body.operation === 'update_setting') {
-        
-        const user_data = await table_user.findOne({
-            where: {
-            email: req.body.email
-            }
-        })
-    // identify email duplicate
-        // console.log(user_data)
-        // console.log(user_data.length > 1)
-        // const user_email = req.body.email
-        // if (user_data && user_data.length != 0 && user_email != user_data.email) {
-        // res.send("Duplicate Email !")
-        // }
-        
-
-        await table_user.update(
-        {
-            first_name: req.body.first_name,
-            last_name: req.body.last_name,
-            email: req.body.email,
-            bio: req.body.bio
-        },
-        {
-            where: {
-                email: req.body.email
-            }
-        })
-
-        res.redirect('/profiles');
-
-    } 
-    // If operation is to update password
-    else if (req.body.operation === 'update_password') {
-        const user_data = await table_user.findOne({
-            where: {
-            password: req.body.current_password
-            }
-        })
-
-        if (!user_data) {
-            res.send("The Current password is wrong")
-        } else if (user_data) {
-            if (req.body.new_password !== req.body.confirm_password) {
-                res.send("The new and confirm password is not match")
-            }
-
-            console.log(req.body.new_password)
-            console.log(req.body.current_password)
-            await table_user.update(
-                {
-                    password: req.body.new_password
-                },
-                {
-                    where: {
-                        password: req.body.current_password
-                    }
-                })
-        }
-
-        res.clearCookie("login")
-        res.redirect('/profiles');
-
-    } else if (req.body.operation === 'logout') {
-        console.log("aaaaaa")
-        res.clearCookie("login")
-        res.redirect("login")
-    }
-    // If we're dealing with a file upload
-    else {
-        const upload = multer({ storage: getMulterStorage(user_profile) }).single('profile_picture');
-
-        upload(req, res, function(err) {
-            if (err) {
-                console.error("File upload error:", err); // Log error details
-                return res.status(500).send("Error uploading file."); // Handle error
-            }
-            
-            // Here, req.file contains the upload information
-            if (req.file) {
-                console.log("File uploaded successfully:", req.file); // Log the uploaded file info
-                // You can now process the file information as needed
-                // For example, update the user's profile photo in the database
-            }
-
-            // After processing the file, redirect back to the profile page
-            res.redirect('/profiles');
-            
-        });
-    
-    
-    }
-});
-
-
-
+    res.clearCookie("login").redirect("login")
+})
 instance_web.use("/birds", router_birds)
 instance_web.use("/auth", router_auth)
 instance_web.use("/login", login)
