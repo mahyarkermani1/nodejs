@@ -34,7 +34,7 @@ const router_auth = require("./routes/auth")
 const login = require("./routes/render-login")
 const register = require("./routes/render-register")
 
-const { authenticateToken, init_root, FindPhoto, load_user_posts, getMulterStorage } = require("./functions")
+const { authenticateToken, init_root, FindPhoto, load_user_posts, getMulterStorage, generateMD5Hash } = require("./functions")
 
 
 var listen_port = 8585
@@ -47,6 +47,34 @@ instance_web.listen(listen_port, (res, req, next) => {
 
 
 instance_web.get("/", async (req, res) => {
+    const posts = await table_post.findAll({
+        limit: 10,
+        order: [['createdAt', 'DESC']] // Adjust the field if necessary
+    });
+
+    res.render("post_list", {post: posts})
+})
+
+instance_web.get("/posts/:id_post", async (req, res) => {
+    const { id_post } = req.params;
+    try {
+        const post = await table_post.findOne({
+            where: { id_post },
+        });
+
+        if (!post) {
+            return res.status(404).send("Post not found");
+        }
+
+        res.render("post_detail", { post });
+    } catch (err) {
+        console.error("Error fetching post details:", err);
+        res.status(500).send("An error occurred while fetching post details.");
+    }
+});
+
+
+instance_web.get("/users", async (req, res) => {
     const _table_user = await table_user.findAll()
     res.render("show_users", {users:_table_user})
 })
@@ -89,29 +117,52 @@ instance_web.get("/create_post", authenticateToken, async (req, res) => {
 })
 
 
-instance_web.post("/create_post", authenticateToken, async (req, res) => {
-    const {id_post, title, content} = req.body
+const upload = multer({ storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './files/images/users'); // Ensure this path is correct
+    },
+    filename: function (req, file, cb) {
+        // Obtain the str_value which is needed for the filename
+        const str_value = Date.now() + "@" + (req.file ? req.file.filename : null); 
+        cb(null, `${generateMD5Hash(str_value)}${module_path.extname(file.originalname)}`);
+    }
+}) });
+
+
+instance_web.post("/create_post", authenticateToken, upload.single('post_cover'), async (req, res) => {
+    const { id_post, title, content } = req.body; // This is now done after multer handles the file
+
+    // Check if both title and content are available
+    if (!title || !content) {
+        return res.status(400).send("Title and Content are required.");
+    }
+
+    // Handle the post_cover filename
+    const post_cover = req.file ? req.file.filename : null;
 
     if (id_post) {
+        // Update existing post
         await table_post.update({
             title,
-            content
-        },
-        {
-        where: {
-            id_post: id_post,
-        }})
+            content,
+            post_cover
+        }, {
+            where: {
+                id_post: id_post,
+            }
+        });
     } else {
+        // Create new post
         await table_post.create({
             id_user: res.locals.user_profile.id,
             title,
-            content
-        })
+            content,
+            post_cover
+        });
     }
 
-
-    res.redirect("/profiles")
-})
+    res.redirect("/profiles");
+});
 
 
 
@@ -232,8 +283,7 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
         }
         
         const user_posts = await load_user_posts(search_fn_email_into_db.id)
-        console.log(search_fn_email_into_db.id)
-        console.log(user_posts)
+
         res.render("profile", {
             profile: {
                 photo: new_photo,
@@ -254,24 +304,10 @@ instance_web.get("/profiles", authenticateToken, async (req, res, next) => {
 
 
 instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
-    const user_profile = res.locals.user_profile; // Destructure the user profile
+    const {email} = res.locals.user_profile; // Destructure the user profile
 
     // If operation is to update settings
     if (req.body.operation === 'update_setting') {
-        
-        // const user_data = await table_user.findOne({
-        //     where: {
-        //     email: req.body.email
-        //     }
-        // })
-    // identify email duplicate
-        // console.log(user_data)
-        // console.log(user_data.length > 1)
-        // const user_email = req.body.email
-        // if (user_data && user_data.length != 0 && user_email != user_data.email) {
-        // res.send("Duplicate Email !")
-        // }
-        
 
         await table_user.update(
         {
@@ -302,8 +338,6 @@ instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
                 res.send("The new and confirm password is not match")
             }
 
-            console.log(req.body.new_password)
-            console.log(req.body.current_password)
             await table_user.update(
                 {
                     password: req.body.new_password
@@ -322,11 +356,10 @@ instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
         res.redirect('/profiles');
     
     } else if (req.body.operation === 'logout') {
-        console.log("aaaaaa")
         res.clearCookie("login")
         res.redirect("login")
     } else {
-        const upload = multer({ storage: getMulterStorage(user_profile) }).single('profile_picture');
+        const upload = multer({ storage: getMulterStorage(email) }).single('profile_picture');
 
         upload(req, res, function(err) {
             if (err) {
@@ -336,7 +369,6 @@ instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
             
             // Here, req.file contains the upload information
             if (req.file) {
-                console.log("File uploaded successfully:", req.file); // Log the uploaded file info
                 // You can now process the file information as needed
                 // For example, update the user's profile photo in the database
             }

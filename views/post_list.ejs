@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('header', {title: "Profile"}) %>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa; 
+        }
+        .post-card {
+            margin: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        .post-card:hover {
+            transform: scale(1.05);
+        }
+        .post-image {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            max-height: 200px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="d-flex justify-content-center">
+    <div class="container">
+        <h1 class="text-center my-4">Last 10 Posts</h1>
+        <div class="row">
+            <% post.forEach(post => { %>
+                <div class="col-md-4">
+                    <div class="card post-card">
+                        <img src="<%= '../images/users/' + post.post_cover %>" class="card-img-top post-image" alt="Post Cover">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <%= (post.title.length > 25 ? post.title.substring(0, 25) + '...' : post.title) %>
+                            </h5>
+                            <p class="card-text">
+                                <%= (post.content.length > 70 ? post.content.substring(0, 70) + '...' : post.content) %>
+                            </p>
+                            <a href="/<%= post.id_post %>" class="btn btn-primary">Read Full Content</a>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+    <!-- Bootstrap JS Bundle with Popper.js -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+
+
+</html>

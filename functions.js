@@ -84,17 +84,20 @@ async function load_user_posts(user_id) {
     })
 }
 
-function getMulterStorage(user_profile) {
+function getMulterStorage(str_value) {
     return multer.diskStorage({
         destination: function(req, file, cb) {
             cb(null, "./files/images/users");
         },
         filename: function(req, file, cb) {
-            // Use user's first_name or email in the filename
-            cb(null, `${generateMD5Hash(user_profile.email)}${module_path.extname(file.originalname)}`);
+            const filename = `${generateMD5Hash(str_value)}${module_path.extname(file.originalname)}`;
+            cb(null, filename);
+            // Store the filename in the request object for later use
+            req.uploadedFileName = filename; // Keep it for the upload process if needed
         }
     });
 }
+
 
 module.exports = {
     authenticateToken,

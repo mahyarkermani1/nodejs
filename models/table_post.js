@@ -26,6 +26,10 @@ const Post = module_db.define("Post", {
         type: DataTypes.STRING,
         allowNull: false
     },
+    post_cover: {
+        type: DataTypes.STRING,
+        allowNull: false
+    }
 
 }, {});
 

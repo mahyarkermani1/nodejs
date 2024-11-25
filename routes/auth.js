@@ -95,7 +95,6 @@ router_express.post("/login", async (req, res) => {
         const posts = await load_user_posts(search_e_p_into_db.id)
 
 
-        console.log(`user posts: ${posts.id}`)
 
         res.render("profile", {
             profile: {
