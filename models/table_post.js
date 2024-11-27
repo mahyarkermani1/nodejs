@@ -1,5 +1,6 @@
 const { DataTypes } = require("sequelize")
 const module_db = require("../database/db_init");
+const User = require("./table_user");
 
 const Post = module_db.define("Post", {
     id_post: {
@@ -29,8 +30,12 @@ const Post = module_db.define("Post", {
     post_cover: {
         type: DataTypes.STRING,
         allowNull: false
-    }
+    },
+
+
 
 }, {});
+
+
 
 module.exports = Post

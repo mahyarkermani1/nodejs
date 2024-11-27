@@ -43,7 +43,45 @@ const User = module_db.define("User", {
         type: DataTypes.TIME,
         allowNull: true,
         defaultValue: null
+    },
+
+    role: {
+        type: DataTypes.ENUM,
+        values: ["user", "admin"],
+        defaultValue: "user"
+    },
+
+    status: {
+        type: DataTypes.ENUM,
+        values: ["active", "disable"],
+        defaultValue: "active"
     }
+
+
+
 }, {});
+
+User.sync().then(async () => {
+    const admin_email = "Admin@gmail.com"
+    const admin = await User.findOne({
+        where: {
+            email: admin_email,
+        }
+    })
+
+    if (!admin) {
+        await User.create({
+            first_name: "Admin",
+            last_name: "Admin",
+            password: "Admin",
+            email: admin_email,
+            bio: "This is Admin Account . . .",
+            role: "admin",
+            status: "active"
+    
+        })
+    }
+
+})
 
 module.exports = User

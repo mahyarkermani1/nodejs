@@ -34,6 +34,8 @@ const router_auth = require("./routes/auth")
 const login = require("./routes/render-login")
 const register = require("./routes/render-register")
 
+const admin_panel = require("./routes/admin_panel")
+
 const { authenticateToken, init_root, FindPhoto, load_user_posts, getMulterStorage, generateMD5Hash } = require("./functions")
 
 
@@ -381,6 +383,8 @@ instance_web.post("/profiles", authenticateToken, async (req, res, next) => {
     
     }
 });
+
+instance_web.use("/admin", admin_panel)
 
 
 instance_web.use("/birds", router_birds)
